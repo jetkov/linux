@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# GeoIPMon: Geographic connection monitor.
+# Outputs the connected addresses and their geographic origins in tabular format.
+# Deppends on netstat, geoip-bin, geoip-database-extra, sed, awk. Issuing the command and storing the output in a variable
+
+# Get the current connections
+ONS=$(netstat -nut)
+
+# Store the foreign IPs in an array
+IFS=$'\r\n' GLOBIGNORE='*' :; IPL=($(netstat -nut | sed '1,2d' | sed -r 's/.{44}//' | sed 's/:.*//' | sed '/127.0.0.1/d'))
+
+# Count the total number of connections
+IPN=${#IPL[@]}
+
+# Echo the header of the table output and the connection information
+echo "Foreign Address  Geographic Origin" 
+echo "---------------------------------------" 
+
+x=0 
+
+while [ $x -lt $IPN ] 
+do
+  RAWINFO=$(geoiplookup ${IPL[$x]})
+  if [[ $RAWINFO == *'not found'* ]]; then
+    echo -e "${IPL[$x]} \t Address Untraceable"
+  else
+    CNTRY=$(echo -e "$RAWINFO" | awk -F ', ' 'FNR == 1 {print $2}')
+    DSTRCT=$(echo -e "$RAWINFO" | awk -F ', ' 'FNR == 2 {print $3}')
+    CITY=$(echo -e "$RAWINFO" | awk -F ', ' 'FNR == 2 {print $5}')
+    ORG=$(echo -e "$RAWINFO" | awk 'FNR == 3 { print substr($0, index($0,$5)) }')
+    echo -e "${IPL[$x]} \t $CNTRY, $DSTRCT, $CITY, $ORG"
+  fi
+  x=$(( $x + 1 )) 
+done

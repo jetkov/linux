@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Login system information MOTD
+# Depends on sysstat and vnstat
+
+# Special users (to highlight in lastlog)
+U0='jetkov'
+U1='otheruser'
+
+# Date (enter timezone)
+DATE=$(TZ='America/Toronto' date)
+
+# Main system metrics (uptime, CPU usage, RAM usage, disk usage)
+UPTIME=$(uptime -p | sed 's/...//')
+AVGLOAD=$(uptime | sed -n -e 's/^.*average: //p')
+CPU=$(mpstat | awk '$12 ~ /[0-9.]+/ { print 100 - $13"%" }')
+RAM=$(free | grep Mem | awk '{printf("%.2f%%\n",$3/$2*100.0)}')
+ROOTDISK=$(df -h | grep /$ | awk '{print $5}')
+
+# Last logins
+LASTLOG=$(last | head -n 1 | awk '{$1="\033[0;37m[\033[0;33m"$1"\033[0;37m]\033[1;30m"; $2=""; sub("  ", " "); print}' | sed ''/root/s//$(printf "\033[0;31mroot")/'' | sed ''/$U0/s//$(printf "\033[0;36m$U0")/'' | sed ''/$U1/s//$(printf "\033[1;32m$U1")/'')
+
+# Internet usage metrics
+RX=$(vnstat -m | grep $(date +'%B' | cut -c1-3) | awk '{print $3, $4}')
+TX=$(vnstat -m | grep $(date +'%B' | cut -c1-3) | awk '{print $6, $7}')
+TTL=$(vnstat -m | grep $(date +'%B' | cut -c1-3) | awk '{print $9, $10}')
+AVGRTE=$(vnstat -m | grep $(date +'%B' | cut -c1-3) | awk '{print $12, $13}')
+
+# Printing all this information
+echo -e "   \033[0;37mDate: \033[1;30m$DATE"
+echo -e "   \033[0;37mUptime: \033[1;30m$UPTIME"
+echo -e "   \033[0;37mLast Login: $LASTLOG"
+echo ""
+echo -e "   \033[0;37mRecieved: \033[1;30m$RX\t \033[0;37mTransmitted: \033[1;30m$TX"
+echo -e "   \033[0;37mTotal: \033[1;30m$TTL\t \033[0;37mAverage Rate: \033[1;30m$AVGRTE"
+echo ""
+echo -e "   \033[0;37mAverage Load: \033[1;30m[$AVGLOAD]"
+echo -e "   \033[0;37mCPU: \033[1;30m$CPU  \033[0;37mRAM: \033[1;30m$RAM  \033[0;37m[/]: \033[1;30m$ROOTDISK"
+
+printf "\033[0m\n"
