@@ -22,6 +22,7 @@ sudo unlink /etc/update-motd.d/50-landscape-sysinfo
 
 # Disable SSH last log printing since it is printed in the MOTD info script
 sudo sed -i 's/#PrintLastLog yes/PrintLastLog no/g' /etc/ssh/sshd_config
+sudo service sshd restart
 
 # Copy bash profiles
 cp ./bash-config/user.bashrc ~/.bashrc && chown $USER:$USER ~/.bashrc && chmod 0644 ~/.bashrc 
